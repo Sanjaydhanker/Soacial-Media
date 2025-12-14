@@ -10,12 +10,30 @@ function Postlist() {
 
   useEffect(() => {
     setDataFetch(true);
-    fetch("https://dummyjson.com/posts")
-      .then((res) => res.json())
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    fetch("https://dummyjson.com/posts", { signal })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch");
+        }
+        return res.json();
+      })
       .then((data) => {
         addInitialPosts(data.posts);
         setDataFetch(false);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error(error);
+        }
       });
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   return (
