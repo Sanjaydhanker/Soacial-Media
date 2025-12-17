@@ -1,61 +1,15 @@
 import { useContext, useRef } from "react";
 import { PostCreateContext } from "../store/post-list-store";
-import { useNavigate } from "react-router-dom";
+import { Form, redirect, useNavigate } from "react-router-dom";
 
 function CreatePost() {
   const { addPost } = useContext(PostCreateContext);
-  const navigate = useNavigate();
-
-  const titleElement = useRef("");
-  const bodyElement = useRef("");
-  const likesElement = useRef("");
-  const dislikesElement = useRef("");
-  const userIdElement = useRef("");
-  const tagsElement = useRef("");
-
-  const handleOnSubmit = (e) => {
-    e.preventDefault();
-    const title = titleElement.current.value;
-    const body = bodyElement.current.value;
-    const likes = likesElement.current.value;
-    const dislikes = dislikesElement.current.value;
-    const reactions = {
-      likes: likes,
-      dislikes: dislikes,
-    };
-    const userId = userIdElement.current.value;
-    const tags = tagsElement.current.value.split(" ");
-    titleElement.current.value = "";
-    likesElement.current.value = "";
-    dislikesElement.current.value = "";
-    bodyElement.current.value = "";
-    userIdElement.current.value = "";
-    tagsElement.current.value = "";
-
-    fetch("https://dummyjson.com/posts/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title,
-        body: body,
-        reactions: reactions,
-        userId: userId,
-        tags: tags,
-        /* other post data */
-      }),
-    })
-      .then((res) => res.json())
-      .then((resObj) => {
-        addPost(resObj);
-        navigate("/post-list");
-      });
-  };
 
   return (
     <div className=" flex justify-center ">
-      <form
+      <Form
+        method="POST"
         className="bg-white p-6 rounded-lg shadow-md w-full max-w-md"
-        onSubmit={handleOnSubmit}
       >
         <h2 className="text-2xl font-semibold mb-4">Create Post</h2>
 
@@ -64,7 +18,7 @@ function CreatePost() {
           <input
             type="text"
             placeholder="user Id"
-            ref={userIdElement}
+            name="userId"
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
@@ -73,7 +27,7 @@ function CreatePost() {
           <label className="block text-gray-700 mb-1">Title</label>
           <input
             type="text"
-            ref={titleElement}
+            name="title"
             placeholder="how was you day"
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
@@ -84,7 +38,7 @@ function CreatePost() {
           <textarea
             rows="2"
             placeholder="Your body"
-            ref={bodyElement}
+            name="body"
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           ></textarea>
         </div>
@@ -94,7 +48,7 @@ function CreatePost() {
           <input
             type="text"
             placeholder="how many Like did you get"
-            ref={likesElement}
+            name="likes"
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
@@ -103,7 +57,7 @@ function CreatePost() {
           <input
             type="text"
             placeholder="how many Dislike did you get"
-            ref={dislikesElement}
+            name="unLikes"
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
@@ -113,7 +67,7 @@ function CreatePost() {
           <input
             type="text"
             placeholder="Please enter tag using space"
-            ref={tagsElement}
+            name="tags"
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
         </div>
@@ -124,9 +78,40 @@ function CreatePost() {
         >
           Post
         </button>
-      </form>
+      </Form>
     </div>
   );
 }
+
+export const actionForm = async (data) => {
+  const formData = await data.request.formData();
+  const postData = Object.fromEntries(formData);
+  // ✅ Convert to numbers
+  const likes = Number(postData.likes) || 0;
+  const dislikes = Number(postData.unLikes) || 0;
+
+  // ✅ Build correct structure
+  postData.reactions = {
+    likes,
+    dislikes,
+  };
+
+  // ✅ Remove unused fields
+  delete postData.likes;
+  delete postData.unLikes;
+
+  postData.tags = postData.tags.split(" ");
+
+  fetch("https://dummyjson.com/posts/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(postData),
+  })
+    .then((res) => res.json())
+    .then((post) => {
+      console.log(post);
+    });
+  return redirect("/");
+};
 
 export default CreatePost;
