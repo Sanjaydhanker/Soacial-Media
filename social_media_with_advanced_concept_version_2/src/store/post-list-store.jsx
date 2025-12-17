@@ -1,10 +1,10 @@
-import { createContext, useReducer } from "react";
+import { createContext, useReducer, useState, useEffect } from "react";
 
 export const PostCreateContext = createContext({
   postList: [],
+  dataFetch: false,
   addPost: () => {},
   deletePost: () => {},
-  addInitialPosts: () => {},
 });
 
 const createPostReducer = (currentPostList, action) => {
@@ -16,37 +16,53 @@ const createPostReducer = (currentPostList, action) => {
   } else if (action.type === "ADD_INITIAL_POSTS") {
     newPostList = action.payload.posts;
   } else if (action.type === "ADD_POST") {
-    const addNewPost = {
-      id: action.payload.id,
-      title: action.payload.title,
-      body: action.payload.body,
-      reactions: action.payload.reactions,
-      userId: action.payload.userId,
-      tags: action.payload.tags,
-    };
-    newPostList = [addNewPost, ...currentPostList];
+    newPostList = [action.payload, ...currentPostList];
   }
   return newPostList;
 };
 
 const CreateContextProvider = ({ children }) => {
-  const [postList, dispachPostList] = useReducer(createPostReducer, []);
+  const [postList, dispatchPostList] = useReducer(createPostReducer, []);
+  const [dataFetch, setDataFetch] = useState(false);
+
+  useEffect(() => {
+    setDataFetch(true);
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    fetch("https://dummyjson.com/posts", { signal })
+      .then((res) => res.json())
+      .then((data) => {
+        addInitialPosts(data.posts);
+        setDataFetch(false);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error(error);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   const addPost = (post) => {
-    dispachPostList({
+    dispatchPostList({
       type: "ADD_POST",
       payload: post,
     });
   };
   const addInitialPosts = (posts) => {
-    dispachPostList({
+    dispatchPostList({
       type: "ADD_INITIAL_POSTS",
       payload: { posts },
     });
   };
 
   const deletePost = (id) => {
-    dispachPostList({
+    dispatchPostList({
       type: "DELETE_POST",
       payload: {
         id,
@@ -60,7 +76,7 @@ const CreateContextProvider = ({ children }) => {
         postList,
         addPost,
         deletePost,
-        addInitialPosts,
+        dataFetch,
       }}
     >
       {children}
